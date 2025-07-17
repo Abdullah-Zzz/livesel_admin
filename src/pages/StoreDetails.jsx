@@ -117,7 +117,7 @@ export default function StoreDetails() {
             </section>
 
             <Link
-                to="/admin/stores"
+                to="/stores"
                 className="inline-block mt-4 text-sm px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
                 ← Back to Stores
