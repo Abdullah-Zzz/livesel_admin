@@ -26,7 +26,7 @@ export default function AdminLogin() {
         return;
       }
 
-      navigate("/admin");
+      navigate("/");
     } catch (err) {
       setErrMsg(err.response?.data?.message || "Login failed");
     }
