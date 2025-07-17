@@ -47,7 +47,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
   };
 
   const statuses = ["", "pending", "processing", "shipped", "delivered", "cancelled", "returned"];
-  console.log(filter.status)
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">All Orders</h1>

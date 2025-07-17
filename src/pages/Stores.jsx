@@ -118,7 +118,7 @@ export default function Stores() {
                     {store.settings?.isActive ? "Deactivate" : "Activate"}
                   </button>
                   <Link
-                    to={`/admin/stores/${store._id}`}
+                    to={`/stores/${store._id}`}
                     className="text-sm px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
                   >
                     View
