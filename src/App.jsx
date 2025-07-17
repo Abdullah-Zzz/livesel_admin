@@ -18,7 +18,7 @@ export default function App() {
         <Route path="/admin/login" element={<AdminLogin />} />
 
         <Route
-          path="/admin"
+          path="/"
           element={
             <RequireAdmin>
               <AdminLayout />
