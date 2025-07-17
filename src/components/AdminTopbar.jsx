@@ -1,13 +1,26 @@
-// src/components/AdminTopbar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function AdminTopbar() {
   const navigate = useNavigate();
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    navigate("/admin/login");
+  const handleLogout = async () => {
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/users/logout`, {}, {
+        withCredentials: true,
+      });
+
+      if (res.status === 200) {
+        navigate("/admin/login");
+      } else {
+        alert("An error occurred, please try again.");
+      }
+    } catch (err) {
+      console.error("Logout error:", err);
+      alert("An error occurred, please try again.");
+    }
   };
 
   return (
