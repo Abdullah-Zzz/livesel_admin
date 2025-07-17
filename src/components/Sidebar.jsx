@@ -4,12 +4,12 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const Sidebar = () => {
   const links = [
-    { to: "/admin/", label: "Dashboard" },
-    { to: "/admin/sellers", label: "Sellers" },
-    { to: "/admin/stores", label: "Stores" },
-    { to: "/admin/orders", label: "Orders" },
-    { to: "/admin/products", label: "Products" },
-    { to: "/admin/categories", label: "Categories" }
+    { to: "/", label: "Dashboard" },
+    { to: "/sellers", label: "Sellers" },
+    { to: "/stores", label: "Stores" },
+    { to: "/orders", label: "Orders" },
+    { to: "/products", label: "Products" },
+    { to: "/categories", label: "Categories" }
   ];
 
   return (
