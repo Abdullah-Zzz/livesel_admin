@@ -140,13 +140,17 @@ export default function AddProduct() {
       };
 
       // Step 3: Send to your backend
-      await axios.post(`${BACKEND_URL}/api/products`, productData, {
+      const res = await axios.post(`${BACKEND_URL}/api/products`, productData, {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
+        validateStatus : (status)=>status <500
       });
-
-      navigate("/vendor/products");
+      if(res.status == 200){
+       navigate("/vendor/products");
+      }
+      alert(res.data.message)
     } catch (err) {
+      alert("An error has occurred, please try again")
       console.error("Submit Error:", err);
     }
   };
