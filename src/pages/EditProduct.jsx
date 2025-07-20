@@ -112,20 +112,31 @@ export default function EditProduct() {
     });
     return Promise.all(uploadPromises);
   };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const uploadedImageUrls = await uploadImagesToCloudinary();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
 
-      // Clean specifications
-      const cleanedSpecifications = (form.specifications || []).map((spec) => ({
-        key: spec.key,
-        value: spec.value,
-      }));
+  try {
+    // Upload only the new images
+    const uploadedImageUrls = await uploadImagesToCloudinary();
 
-      // Sanitize shipping info
-      const cleanedShipping = form.shippingInfo
-        ? {
+    // Combine old (already uploaded) and new uploaded URLs
+    const existingImageUrls = previewImages.filter((img) => typeof img === "string");
+    const allImages = [...existingImageUrls, ...uploadedImageUrls];
+
+    if (!form.category || form.category.length === 0) {
+      setError("At least one category is required.");
+      alert("At least one category is required.")
+      return;
+    }
+
+    const cleanedSpecifications = (form.specifications || []).map((spec) => ({
+      key: spec.key,
+      value: spec.value,
+    }));
+
+    const cleanedShipping = form.shippingInfo
+      ? {
           weight: form.shippingInfo.weight,
           shippingClass: form.shippingInfo.shippingClass,
           dimensions: {
@@ -134,34 +145,37 @@ export default function EditProduct() {
             height: form.shippingInfo.dimensions?.height,
           },
         }
-        : undefined;
+      : undefined;
 
-      // Build only the required fields
-      const updatedForm = {
-        name: form.name,
-        description: form.description,
-        price: form.price,
-        originalPrice: form.originalPrice,
-        category: form.category,
-        images: [...uploadedImageUrls],
-        stock: form.stock,
-        isActive: form.isActive ?? true,
-        specifications: cleanedSpecifications,
-        shippingInfo: cleanedShipping,
-      };
+    const updatedForm = {
+      name: form.name,
+      description: form.description,
+      price: form.price,
+      originalPrice: form.originalPrice,
+      category: form.category,
+      images: allImages,
+      stock: form.stock,
+      isActive: form.isActive ?? true,
+      specifications: cleanedSpecifications,
+      shippingInfo: cleanedShipping,
+    };
 
-      await axios.put(`${BACKEND_URL}/api/products/${id}`, updatedForm, {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true,
-      });
+    await axios.put(`${BACKEND_URL}/api/products/${id}`, updatedForm, {
+      headers: { "Content-Type": "application/json" },
+      withCredentials: true,
+    });
 
-      navigate("/vendor/products");
-    } catch (err) {
-      console.error("Submit error:", err);
-      const message = err.response?.data?.message || "Something went wrong. Please try again.";
-      setError(message);
-    }
-  };
+    navigate("/vendor/products");
+  } catch (err) {
+    console.error("Submit error:", err);
+    const message =
+      err.response?.data?.message || "Something went wrong. Please try again.";
+      alert(message)
+
+    setError(message);
+  }
+};
+
 
   if (!form) return <div>Loading...</div>;
 
