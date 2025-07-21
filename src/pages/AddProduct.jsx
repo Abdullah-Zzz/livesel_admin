@@ -1,32 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Plus, X } from "lucide-react";
 
 export default function AddProduct() {
   const [form, setForm] = useState({
     name: "",
-    description: "",
     price: "",
     originalPrice: "",
     stock: "",
     category: [],
-    specifications: [],
-    shippingInfo: {
-      weight: "",
-      dimensions: { length: "", width: "", height: "" },
-      shippingClass: "",
-    },
+    images: [],
   });
 
   const [images, setImages] = useState([]);
   const [previewImages, setPreviewImages] = useState([]);
   const [categoryInput, setCategoryInput] = useState("");
-  const [specKey, setSpecKey] = useState("");
-  const [specValue, setSpecValue] = useState("");
+  const [error, setError] = useState("");
+  const [prodType, setProdType] = useState("")
+  const [attributes, setAttributes] = useState()
+
+
   const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-  const cloud_name = import.meta.env.VITE_CLOUD_NAME
-  const preset_name  = import.meta.env.VITE_PRESET_NAME
+  const cloud_name = import.meta.env.VITE_CLOUD_NAME;
+  const preset_name = import.meta.env.VITE_PRESET_NAME;
+
+  const fetchAttributes = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/attribute`, { withCredentials: true });
+      setAttributes(res.data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttributes()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,206 +46,178 @@ export default function AddProduct() {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
+    if (previewImages.length + files.length > 4) return;
     setImages((prev) => [...prev, ...files]);
-    setPreviewImages((prev) => [
-      ...prev,
-      ...files.map((file) => URL.createObjectURL(file)),
-    ]);
+    setPreviewImages((prev) => [...prev, ...files.map((file) => URL.createObjectURL(file))]);
   };
 
   const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    const isObjectUrl = typeof previewImages[index] !== "string";
+    if (isObjectUrl) {
+      setImages((prev) => prev.filter((_, i) => i !== index));
+    }
     setPreviewImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const addCategory = () => {
-    if (categoryInput.trim()) {
-      setForm((prev) => ({
-        ...prev,
-        category: [...prev.category, categoryInput.trim()],
-      }));
-      setCategoryInput("");
-    }
-  };
-
-  const removeCategory = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      category: prev.category.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addSpecification = () => {
-    if (specKey && specValue) {
-      setForm((prev) => ({
-        ...prev,
-        specifications: [
-          ...prev.specifications,
-          { key: specKey, value: specValue },
-        ],
-      }));
-      setSpecKey("");
-      setSpecValue("");
-    }
-  };
-
-  const removeSpecification = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      specifications: prev.specifications.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleShippingChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      shippingInfo: {
-        ...prev.shippingInfo,
-        [name]: value,
-      },
-    }));
-  };
-
-  const handleDimensionChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      shippingInfo: {
-        ...prev.shippingInfo,
-        dimensions: {
-          ...prev.shippingInfo.dimensions,
-          [name]: value,
-        },
-      },
-    }));
   };
 
   const uploadImagesToCloudinary = async () => {
     const uploadPromises = images.map(async (image) => {
       const formData = new FormData();
       formData.append("file", image);
-      formData.append("upload_preset", preset_name); // replace with your Cloudinary preset
-
-      const res = await axios.post(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, // replace with your cloud name
-        formData
-      );
-
+      formData.append("upload_preset", preset_name);
+      const res = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, formData);
       return res.data.secure_url;
     });
-    console.log(Promise.all(uploadPromises))
     return Promise.all(uploadPromises);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
     try {
-      // Step 1: Upload images
       const uploadedImageUrls = await uploadImagesToCloudinary();
 
-      // Step 2: Prepare full product data
+      if (!form.category || form.category.length === 0) {
+        setError("At least one category is required.");
+        alert("At least one category is required.");
+        return;
+      }
+
       const productData = {
-        ...form,
+        name: form.name,
+        price: form.price,
+        originalPrice: form.originalPrice,
+        category: form.category,
         images: uploadedImageUrls,
+        stock: form.stock,
+        isActive: true,
       };
 
-      // Step 3: Send to your backend
       const res = await axios.post(`${BACKEND_URL}/api/products`, productData, {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
-        validateStatus : (status)=>status <500
       });
-      if(res.status == 200){
-       navigate("/vendor/products");
-      }
-      alert(res.data.message)
+
+      navigate("/vendor/products");
     } catch (err) {
-      alert("An error has occurred, please try again")
-      console.error("Submit Error:", err);
+      console.error("Submit error:", err);
+      const message = err.response?.data?.message || "Something went wrong. Please try again.";
+      alert(message);
+      setError(message);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <h2 className="text-3xl font-semibold mb-6 text-gray-800">Add New Product</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Product Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input type="text" name="name" placeholder="Product Name" value={form.name} onChange={handleChange} required className="input" />
-          <input type="number" name="price" placeholder="Price" value={form.price} onChange={handleChange} required className="input" />
-          <input type="number" name="originalPrice" placeholder="Original Price" value={form.originalPrice} onChange={handleChange} className="input" />
-          <input type="number" name="stock" placeholder="Stock" value={form.stock} onChange={handleChange} required className="input" />
-        </div>
-        <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} className="input h-28" required />
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-3xl font-semibold text-gray-800">Add Product</h2>
+      </div>
 
-        {/* Categories */}
-        <div>
-          <label className="font-semibold block mb-1">Categories</label>
-          <div className="flex gap-2">
-            <input type="text" value={categoryInput} onChange={(e) => setCategoryInput(e.target.value)} placeholder="Enter category" className="input flex-1" />
-            <button type="button" className="btn" onClick={addCategory}>Add</button>
+      <form onSubmit={handleSubmit} className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-6">
+          <div>
+            <label className="font-medium block mb-1">Title</label>
+            <input type="text" name="name" value={form.name} onChange={handleChange} className="input w-full" required />
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {form.category.map((cat, idx) => (
-              <span key={idx} className="bg-gray-200 px-3 py-1 rounded-full">
-                {cat} <button onClick={() => removeCategory(idx)} className="ml-1 text-red-500">&times;</button>
-              </span>
-            ))}
-          </div>
-        </div>
 
-        {/* Specifications */}
-        <div>
-          <label className="font-semibold block mb-1">Specifications</label>
-          <div className="flex gap-2">
-            <input type="text" placeholder="Key" value={specKey} onChange={(e) => setSpecKey(e.target.value)} className="input" />
-            <input type="text" placeholder="Value" value={specValue} onChange={(e) => setSpecValue(e.target.value)} className="input" />
-            <button type="button" className="btn" onClick={addSpecification}>Add</button>
+          {/* <div className="bg-gray-50 p-4 rounded border text-sm text-gray-600">
+            <div className="flex justify-between items-center">
+              <span>Permalink: https://livesel.com/product/{form.name?.toLowerCase().replaceAll(" ", "-")}</span>
+              <button type="button" className="bg-red-500 text-white px-3 py-1 rounded">Edit</button>
+            </div>
+          </div> */}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-medium block mb-1">Product Type</label>
+              <select type="text" className="input w-full bg-gray-100" onChange={(e) => setProdType(e.target.value)}>
+                <option value={"simple"}>Simple</option>
+                <option value={"variable"}>Variable</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-medium block mb-1">Category</label>
+              <input type="text" value={form.category?.[0] || ""} readOnly className="input w-full bg-gray-100" />
+            </div>
           </div>
-          <div className="mt-2 space-y-1">
-            {form.specifications.map((spec, idx) => (
-              <div key={idx} className="bg-gray-100 p-2 rounded flex justify-between">
-                <span>{spec.key}: {spec.value}</span>
-                <button onClick={() => removeSpecification(idx)} className="text-red-500 text-sm">&times;</button>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-medium block mb-1">Price</label>
+              <input type="number" name="originalPrice" value={form.originalPrice} onChange={handleChange} className="input w-full" />
+              <p className="text-xs text-gray-400 mt-1">You earn: ₹{(form.originalPrice - form.price).toFixed(2)}</p>
+            </div>
+            <div>
+              <label className="font-medium block mb-1">Discounted Price</label>
+              <div className="flex items-center gap-2">
+                <input type="number" name="price" value={form.price} onChange={handleChange} className="input w-full" />
+                <span className="text-blue-500 cursor-pointer">Schedule</span>
               </div>
-            ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="font-medium block mb-1">Brand</label>
+              <input type="text" className="input w-full" placeholder="Select brand" />
+            </div>
+            {prodType === "variable" ?
+              <div>
+                <label className="font-medium block mb-1">Atributes And Variations</label>
+                {
+                  attributes ?  <select type="text" className="input w-full bg-gray-100" onChange={(e) => setProdType(e.target.value)}>
+                    {attributes.map(attr => <option value={attr.name}>{attr.name}</option>)}
+                  </select> : null
+                }
+
+              </div> : null
+            }
+          </div>
+
+          <div className="pt-4 border-t mt-6">
+            <h3 className="font-semibold text-lg mb-2">Inventory</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <input type="text" className="input w-full" placeholder="SKU (Stock Keeping Unit)" />
+              <input type="text" className="input w-full" placeholder="Stock Status" value={form.stock > 0 ? "In Stock" : "Out of Stock"} readOnly />
+            </div>
           </div>
         </div>
 
-        {/* Shipping Info */}
         <div>
-          <h3 className="text-lg font-semibold mb-2">Shipping Info</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input type="number" name="weight" placeholder="Weight (kg)" value={form.shippingInfo.weight} onChange={handleShippingChange} className="input" />
-            <input type="number" name="length" placeholder="Length" value={form.shippingInfo.dimensions.length} onChange={handleDimensionChange} className="input" />
-            <input type="number" name="width" placeholder="Width" value={form.shippingInfo.dimensions.width} onChange={handleDimensionChange} className="input" />
-            <input type="number" name="height" placeholder="Height" value={form.shippingInfo.dimensions.height} onChange={handleDimensionChange} className="input" />
-            <input type="text" name="shippingClass" placeholder="Shipping Class" value={form.shippingInfo.shippingClass} onChange={handleShippingChange} className="input" />
+          <label className="block font-semibold mb-1">Product Image</label>
+          <div className="aspect-square border border-dashed rounded overflow-hidden">
+            {previewImages[0] ? (
+              <img src={previewImages[0]} className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400">No image</div>
+            )}
           </div>
-        </div>
 
-        {/* Images */}
-        <div>
-          <label className="block font-semibold mb-1">Upload Images</label>
-          <input type="file" multiple accept="image/*" onChange={handleFileChange} className="input" />
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {previewImages.map((src, idx) => (
-              <div key={idx} className="relative">
-                <img src={src} alt={`preview-${idx}`} className="w-24 h-24 object-cover rounded" />
+          <div className="grid grid-cols-4 gap-2 mt-3">
+            {previewImages.slice(1, 5).map((img, idx) => (
+              <div key={idx} className="relative w-20 h-20 border rounded overflow-hidden">
+                <img src={img} alt="Preview" className="w-full h-full object-cover" />
                 <button
                   type="button"
-                  onClick={() => removeImage(idx)}
-                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center"
+                  onClick={() => removeImage(idx + 1)}
+                  className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1"
                 >
-                  &times;
+                  <X size={12} />
                 </button>
               </div>
             ))}
+            {previewImages.length < 5 && (
+              <label className="w-20 h-20 border border-dashed rounded flex items-center justify-center cursor-pointer">
+                <Plus className="w-6 h-6 text-gray-400" />
+                <input type="file" onChange={handleFileChange} className="hidden" />
+              </label>
+            )}
           </div>
         </div>
 
-        <button type="submit" className="btn-primary w-full py-2 mt-4">Submit Product</button>
+        <div className="md:col-span-3 mt-6">
+          <button type="submit" className="bg-green-600 text-white w-full py-2 rounded">Submit Product</button>
+        </div>
       </form>
     </div>
   );

@@ -45,7 +45,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
         console.error(err);
       });
   };
-
   const statuses = ["", "pending", "processing", "shipped", "delivered", "cancelled", "returned"];
   return (
     <div className="space-y-6">

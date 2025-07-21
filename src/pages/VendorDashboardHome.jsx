@@ -69,7 +69,7 @@ export default function VendorDashboardHome() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard label="Products" value={store.metrics.totalProducts} color="blue" />
-                <StatCard label="Orders" value={store.metrics.totalSales} color="green" />
+                <StatCard label="Orders" value={store.orders.length} color="green" />
                 <StatCard
                     label="Rating"
                     value={`${store.metrics.averageRating?.toFixed(1) || "0.0"} ★`}

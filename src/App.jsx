@@ -19,6 +19,8 @@ import StoreInfo from "./pages/StoreInfo"
 import EditProduct from "./pages/EditProduct"
 import VendorOrders from "./pages/VendorOrders";
 import ShippingZones from "./pages/ShippingZones"
+import OrderDetailsPage from "./pages/orderInfo"
+import ProductAttributes from "./pages/ProductAttributes"
 
 
 export default function App() {
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="store-info" element={<StoreInfo />} />
           <Route path="orders" element={<VendorOrders/>}/>
           <Route path="shipping" element={<ShippingZones/>}/>
+          <Route path="order/:id" element={<OrderDetailsPage/>}/>
+          <Route path="attributes" element={<ProductAttributes/>}/>
         </Route>
 
 
